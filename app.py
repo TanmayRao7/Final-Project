@@ -14,31 +14,47 @@ import os
 def get_data(symbol_ticker):
     company= symbol_ticker
     dataa = yf.download(company , period="1d" , interval="1m")
+    dataa.to_csv('stocks.csv')
+    dataa = pd.read_csv('stocks.csv')
     return dataa
+
 
 def endOfDay(symbol_ticker):
     dataa = get_data(symbol_ticker)
     string = dataa.iloc[-1]
     raw_text = u"\u20B9"
-    response = "Current Prices for "+ symbol_ticker.upper() +" in "+raw_text+" :\n"
-    response += string.to_string()
+    response =  symbol_ticker.upper() +" EOD Data in "+raw_text+" :\n"
+    response +=  string.to_string()
     return response
 
-def get_Consolidated_data(symbol_ticker):
-    df = get_data(symbol_ticker)
-    df = yf.download(symbol_ticker , period="1d" , interval="1m")
-    trace1 = go.Scatter(x = df['Datetime'], y = df['Open'], name='Opening Prices (in Rupees)')
-    trace2 = go.Scatter(x = df['Datetime'], y = df['High'], name='High Prices (in Rupees)')
-    trace3 = go.Scatter(x = df['Datetime'], y = df['Low'], name='Low Prices (in Rupees)')
-    trace4 = go.Scatter(x = df['Datetime'], y = df['Close'], name='Closing Prices (in Rupees)')
-    trace5 = go.Scatter(x = df['Datetime'], y = df['Adj Close'], name='Adjusted Closing Prices (in Rupees)')
-    fig = go.Figure(data=[trace1, trace2, trace3, trace4,trace5] )
-    fig.update_layout(title='Current Stock Prices against Time',
-                   plot_bgcolor='rgb(230, 230,230)',
-                   showlegend=True)
-    if not os.path.exists("images"):
-        os.mkdir("images")
-    return fig
+def trending_mf():
+    mutual_funds = pd.read_html("https://finance.yahoo.com/mutualfunds")[0]
+    df = mutual_funds
+    df = df.iloc[0:4,:3]
+    response =  df.to_string()
+    return response
+
+def get_graphical_data(symbol):
+    url = "https://finance.yahoo.com/chart/"+symbol.upper()
+    return url
+
+def gainers():
+    gainer = pd.read_html("https://finance.yahoo.com/gainers")[0]
+    df = gainer
+    df = df.iloc[0:4,:3]
+    response =  df.to_string()
+    return response
+
+def losers():
+    loser = pd.read_html("https://finance.yahoo.com/losers")[0]
+    df = loser
+    df = df.iloc[0:4,:3]
+    response =  df.to_string()
+    return response
+
+
+
+
 
 app = Flask(__name__)
  
@@ -59,21 +75,27 @@ def wa_sms_reply():
     # Create reply
     if msg == "hi":
        reply.body("Hello, welcome to the Stock Market Bot \n Type sym:<stock_symbol> to know the price of the stock. ")
-    elif "sym:" in msg and "g:sym" not in msg:
+    if "sym:" in msg :
         symbol = msg.split(":")
         symbol = str(symbol[1])
         response = endOfDay(symbol)
         reply.body(""+response)
-    elif "g:sym:" in msg :
-        symbol = msg.split(":")
-        symbol = str(symbol[2])
-        img = get_Consolidated_data(symbol)
-        reply.media(img)
-
-    elif "help" in msg:
+    elif msg =="help":
         reply.body("To Get Stock Codes : \n"+'https://github.com/TanmayRao7/Final-PR/blob/1c4176ac1b24fd4292be93ca12cbc19d3a336f6a/stock_tickers.pdf')
-    else:
-        reply.body("Please type hi to get started.")
+    if msg == "mutual_funds" :
+        response1 = trending_mf()
+        reply.body(""+response1)
+    if msg == "gainers" :
+        response2 = gainers()
+        reply.body(""+response2)
+    if msg == "losers" :
+        response3 = losers()
+        reply.body(""+response3)
+    elif "graph:" in msg:
+        symbol = msg.split(":")
+        symbol = str(symbol[1])
+        url = get_graphical_data(symbol)
+        reply.body(url)
 
     
 
